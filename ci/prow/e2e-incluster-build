@@ -2,9 +2,6 @@
 
 set -euxo pipefail
 
-echo "Expose the registry outside the cluster"
-kubectl apply -f ../registry-nodeport.yaml
-
 echo "Deploy KMMO..."
 make deploy
 
