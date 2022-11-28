@@ -65,7 +65,7 @@ jobs:
           minikube image load kmm-kmod_local.tar
 
       - name: Run e2e-prebuilt-kernel-module tests
-        run: ../ci/prow/e2e-prebuilt-kernel-module
+        run: ./ci/prow/e2e-prebuilt-kernel-module
 
   e2e-two-nodes:
     name: Prebuilt kernel module - two nodes
@@ -102,7 +102,7 @@ jobs:
           minikube image load kmm-kmod_local.tar
 
       - name: Run e2e-prebuilt-kernel-module-two-nodes tests
-        run: ../ci/prow/e2e-prebuilt-kernel-module-two-nodes
+        run: ./ci/prow/e2e-prebuilt-kernel-module-two-nodes
 
 
 
@@ -152,7 +152,7 @@ jobs:
         run: minikube image load kmm_local.tar
 
       - name: Run e2e-incluster-build tests
-        run: ../ci/prow/e2e-incluster-build
+        run: ./ci/prow/e2e-incluster-build
 
   e2e-crd-variable:
     runs-on: ubuntu-latest
@@ -190,5 +190,5 @@ jobs:
         run: minikube image tag kmm-kmod:local kmm-kmod:${{ env.KERNEL_VERSION }}
 
       - name: Run e2e-crd-variable tests
-        run: ../ci/prow/e2e-crd-variable
+        run: ./ci/prow/e2e-crd-variable
 
