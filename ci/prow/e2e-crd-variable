@@ -28,4 +28,4 @@ echo "Check that the module gets unloaded from the node..."
 timeout 1m bash -c 'until ! minikube ssh -- lsmod | grep kmm_ci_a; do sleep 3; done'
 
 echo "Collect troubleshooting data..."
-./.github/actions/collect-troubleshooting
+./ci/github/collect_troubleshooting

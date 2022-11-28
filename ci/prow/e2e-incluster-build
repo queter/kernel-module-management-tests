@@ -39,7 +39,7 @@ timeout 1m bash -c 'until minikube ssh -- lsmod | grep kmm_ci_a; do sleep 3; don
 echo "Check that the DriverContainer prints the secret's value to the standard output..."
 POD_NAME=$(kubectl get pod -l kmm.node.kubernetes.io/module.name --template='{{ (index .items 0).metadata.name }}')
 KERNEL_VERSION=$(uname -r)
-echo "::group::Looking for the build secret"
+          echo "::group::Looking for the build secret"
           until timeout 1m kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do
             sleep 3
           done
@@ -61,10 +61,10 @@ echo "::group::Looking for the build secret"
           echo "::endgroup::"
 
 echo "Remove the Module..."
-kubectl delete -f ci/module-kmm-ci.yaml
+kubectl delete -f module-kmm-ci.yaml
 
 echo "Check that the module gets unloaded from the node..."
 timeout 1m bash -c 'until ! minikube ssh -- lsmod | grep kmm_ci_a; do sleep 3; done'
 
 echo "Collect troubleshooting data ..."
-./ci/github/collect-troubleshooting
+./ci/github/collect_troubleshooting
