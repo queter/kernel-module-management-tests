@@ -1,0 +1,79 @@
+##!/usr/bin/env bash
+
+set -euxo pipefail
+
+echo "Expose the registry outside the cluster"
+kubectl apply -f ../registry-nodeport.yaml
+
+echo "Deploy KMMO..."
+make deploy
+
+echo "Wait until the KMMO Deployment is Available"
+echo "And Describe the Deployment / pods and get their YAML if that failed..."
+timeout 1m kubectl wait --for condition=Available deployments.apps -n kmm-operator-system kmm-operator-controller-manager || kubectl describe deployments.apps -n kmm-operator-system kmm-operator-controller-manager && kubectl get -o yaml deployments.apps -n kmm-operator-system kmm-operator-controller-manager && kubectl describe pod -n kmm-operator-system && kubectl get -o yaml pod -n kmm-operator-system
+
+echo "Create a build secret..."
+kubectl create secret generic build-secret --from-literal=ci-build-secret=super-secret-value
+
+      # The minikube registry-alias addon creates a Job that adds registry.minikube to the CoreDNS configuration.
+      # https://github.com/kubernetes/minikube/blob/master/deploy/addons/registry-aliases/patch-coredns-job.tmpl
+      # This job sometimes does not finish before the operator starts looking for the image in the registry, which
+      # results in failed DNS resolution.
+      # Add a job that tries to resolve registry.minikube, like the operator.
+      # Wait up to 6 minutes, which corresponds to our job's maximum lifetime including backoffs.
+echo "Wait for the internal registry to be available in CoreDNS"
+echo "and if fails check the status of components in the kube-system namespace..."
+kubectl apply -f ../job-wait-minikube-registry-alias.yaml
+timeout 6m kubectl wait --for=condition=Complete --timeout -1s job/wait-minikube-registry-alias || kubectl get all -n kube-system
+
+echo "Add a configmap that contain the kernel module build dockerfile..."
+kubectl apply -f ../kmm-kmod-dockerfile.yaml
+
+echo "Add an kmm-ci Module that contains a valid mapping..."
+sed -e "s/KVER_CHANGEME/$(uname -r)/g" ci/module-kmm-ci-build.template.yaml | tee module-kmm-ci.yaml
+kubectl apply -f module-kmm-ci.yaml
+
+echo "Wait for the job to be created..."
+          until timeout 1m kubectl get job -l kmm.node.kubernetes.io/module.name | grep kmm; do
+            sleep 1
+          done
+
+echo "Check that the module gets loaded on the node..."
+          until timeout 1m minikube ssh -- lsmod | grep kmm_ci_a; do
+            sleep 3
+          done
+
+echo "Check that the DriverContainer prints the secret's value to the standard output..."
+POD_NAME=$(kubectl get pod -l kmm.node.kubernetes.io/module.name --template='{{ (index .items 0).metadata.name }}')
+KERNEL_VERSION=$(uname -r)
+echo "::group::Looking for the build secret"
+          until timeout 1m kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do
+            sleep 3
+          done
+          echo "::endgroup::"
+          echo "::group::Looking for the build argument"
+          until timeout 1m kubectl exec $POD_NAME -- grep some-build-arg /build-arg; do
+            sleep 3
+          done
+          echo "::endgroup::"
+          echo "::group::Looking for the kernel version"
+          until timeout 1m kubectl exec $POD_NAME -- grep $KERNEL_VERSION /kernel-version; do
+            sleep 3
+          done
+          echo "::endgroup::"
+          echo "::group::Looking for the build argument with a default value"
+          until timeout 1m kubectl exec $POD_NAME -- grep default-value /default-value; do
+            sleep 3
+          done
+          echo "::endgroup::"
+
+echo "Remove the Module..."
+kubectl delete -f ../module-kmm-ci.yaml
+
+echo "Check that the module gets unloaded from the node..."
+          until timeout 1m ! minikube ssh -- lsmod | grep kmm_ci_a; do
+            sleep 3
+          done
+
+echo "Collect troubleshooting data ..."
+../github/collect-troubleshooting
