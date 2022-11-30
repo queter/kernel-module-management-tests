@@ -33,7 +33,7 @@ echo "Looking for the build secret"
 until kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do
  sleep 3
 done
-
+#test
 echo "Looking for the build argument"
 timeout 1m bash -c 'until kubectl exec $POD_NAME -- grep some-build-arg /build-arg; do sleep 3; done'
 
