@@ -39,7 +39,7 @@ timeout 1m bash -c "until kubectl exec $POD_NAME -- grep $(uname -r) /kernel-ver
 echo "Looking for the build argument with a default value"
 timeout 1m bash -c "until kubectl exec $POD_NAME -- grep default-value /default-value; do sleep 3; done"
 
- "Remove the Module..."
+echo "Remove the Module..."
 kubectl delete -f module-kmm-ci.yaml
 
 echo "Check that the module gets unloaded from the node..."
