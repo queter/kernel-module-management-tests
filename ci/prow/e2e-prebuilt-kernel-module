@@ -9,8 +9,8 @@ echo "Deploy KMMO..."
 make deploy
 
 echo "Wait until the KMMO Deployment is Available and show info if it fails..."
-timeout 1m kubectl wait --for condition=Available deployments.apps -n kmm-operator-system kmm-operator-controller-manager --request-timeout=1m 
- 
+timeout 1m bash -c 'kubectl wait --for condition=Available deployments.apps -n kmm-operator-system kmm-operator-controller-manager'
+
 echo "Check that the kmm_ci_a module is not loaded on the node..."
 if minikube ssh -- lsmod | grep kmm_ci_a; then
  echo "Unexpected lsmod output - the module is present on the node before the module was applied to the cluster"
