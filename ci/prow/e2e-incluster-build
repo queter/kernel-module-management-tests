@@ -28,20 +28,16 @@ echo "Check that the DriverContainer prints the secret's value to the standard o
 POD_NAME=$(kubectl get pod -l kmm.node.kubernetes.io/module.name --template='{{ (index .items 0).metadata.name }}')
 
 echo "Looking for the build secret"
-#timeout 1m bash -c 'echo "POD_NAME:" $POD_NAME; until kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do sleep 3; done'
+timeout 1m bash -c "until kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do sleep 3; done"
 
-until kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do
- sleep 3
-done
-#test
 echo "Looking for the build argument"
-timeout 1m bash -c 'until kubectl exec $POD_NAME -- grep some-build-arg /build-arg; do sleep 3; done'
+timeout 1m bash -c "until kubectl exec $POD_NAME -- grep some-build-arg /build-arg; do sleep 3; done"
 
 echo "Looking for the kernel version"
-timeout 1m bash -c 'until kubectl exec $POD_NAME -- grep $(uname -r) /kernel-version; do sleep 3; done'
+timeout 1m bash -c "until kubectl exec $POD_NAME -- grep $(uname -r) /kernel-version; do sleep 3; done"
 
 echo "Looking for the build argument with a default value"
-timeout 1m bash -c 'until kubectl exec $POD_NAME -- grep default-value /default-value; do sleep 3; done'
+timeout 1m bash -c "until kubectl exec $POD_NAME -- grep default-value /default-value; do sleep 3; done"
 
  "Remove the Module..."
 kubectl delete -f module-kmm-ci.yaml
