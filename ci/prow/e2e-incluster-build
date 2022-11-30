@@ -30,7 +30,7 @@ POD_NAME=$(kubectl get pod -l kmm.node.kubernetes.io/module.name --template='{{ 
 echo "Looking for the build secret"
 #timeout 1m bash -c 'echo "POD_NAME:" $POD_NAME; until kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do sleep 3; done'
 
-kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do sleep 3; done
+until kubectl exec $POD_NAME -- grep super-secret-value /ci-build-secret; do sleep 3; done
 echo "Looking for the build argument"
 timeout 1m bash -c 'until kubectl exec $POD_NAME -- grep some-build-arg /build-arg; do sleep 3; done'
 
