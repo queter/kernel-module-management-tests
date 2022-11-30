@@ -64,8 +64,24 @@ jobs:
           minikube image load kmm_local.tar
           minikube image load kmm-kmod_local.tar
 
+      - name: Cache binaries needed by Makefile
+        id: cache-bin
+        uses: actions/cache@v3
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ env.GO_VERSION }}-${{ hashFiles('Makefile') }}
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        if: steps.cache-bin.outputs.cache-hit != 'true'
+
       - name: Run e2e-prebuilt-kernel-module tests
         run: ./ci/prow/e2e-prebuilt-kernel-module
+
+      - name: Collect troubleshooting data
+        uses: ./.github/actions/collect-troubleshooting
+        if: ${{ always() }}        
 
   e2e-two-nodes:
     name: Prebuilt kernel module - two nodes
@@ -101,10 +117,24 @@ jobs:
           minikube image load kmm_local.tar
           minikube image load kmm-kmod_local.tar
 
+      - name: Cache binaries needed by Makefile
+        id: cache-bin
+        uses: actions/cache@v3
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ env.GO_VERSION }}-${{ hashFiles('Makefile') }}
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        if: steps.cache-bin.outputs.cache-hit != 'true'
+
       - name: Run e2e-prebuilt-kernel-module-two-nodes tests
         run: ./ci/prow/e2e-prebuilt-kernel-module-two-nodes
 
-
+      - name: Collect troubleshooting data
+        uses: ./.github/actions/collect-troubleshooting
+        if: ${{ always() }}
 
   in-cluster-build:
     runs-on: ubuntu-latest
@@ -151,8 +181,37 @@ jobs:
       - name: Import the KMMO image into minikube
         run: minikube image load kmm_local.tar
 
+      - name: Cache binaries needed by Makefile
+        id: cache-bin
+        uses: actions/cache@v3
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ env.GO_VERSION }}-${{ hashFiles('Makefile') }}
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        if: steps.cache-bin.outputs.cache-hit != 'true'
+
+     # The minikube registry-alias addon creates a Job that adds registry.minikube to the CoreDNS configuration.
+      # https://github.com/kubernetes/minikube/blob/master/deploy/addons/registry-aliases/patch-coredns-job.tmpl
+      # This job sometimes does not finish before the operator starts looking for the image in the registry, which
+      # results in failed DNS resolution.
+      # Add a job that tries to resolve registry.minikube, like the operator.
+      # Wait up to 6 minutes, which corresponds to our job's maximum lifetime including backoffs.
+      - name: Wait for the internal registry to be available in CoreDNS
+        run: |
+          kubectl apply -f ci/job-wait-minikube-registry-alias.yaml
+          kubectl wait --for=condition=Complete --timeout -1s job/wait-minikube-registry-alias
+        timeout-minutes: 6
+
+
       - name: Run e2e-incluster-build tests
         run: ./ci/prow/e2e-incluster-build
+
+      - name: Collect troubleshooting data
+        uses: ./.github/actions/collect-troubleshooting
+        if: ${{ always() }}
 
   e2e-crd-variable:
     runs-on: ubuntu-latest
@@ -189,6 +248,21 @@ jobs:
       - name: Tag the DriverContainer image with the kernel version
         run: minikube image tag kmm-kmod:local kmm-kmod:${{ env.KERNEL_VERSION }}
 
+      - name: Cache binaries needed by Makefile
+        id: cache-bin
+        uses: actions/cache@v3
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ env.GO_VERSION }}-${{ hashFiles('Makefile') }}
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        if: steps.cache-bin.outputs.cache-hit != 'true'
+
       - name: Run e2e-crd-variable tests
         run: ./ci/prow/e2e-crd-variable
 
+      - name: Collect troubleshooting data
+        uses: ./.github/actions/collect-troubleshooting
+        if: ${{ always() }}
