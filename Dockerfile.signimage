@@ -1,7 +1,7 @@
 FROM registry.fedoraproject.org/fedora as ksource
 RUN yum install -y kernel-devel
 
-FROM golang:1.19 as builder
+FROM golang:1.20 as builder
 
 WORKDIR /workspace
 
